@@ -1,0 +1,17 @@
+# Render Blueprint Configuration
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: eduanalytics-saas
+    env: node
+    region: frankfurt  # ou 'oregon', 'ohio', 'singapore'
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: node server.js
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 18.17.0
