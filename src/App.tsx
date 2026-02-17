@@ -26,78 +26,55 @@ const SINGLE_VIDEO = '/background.mp4';
 // COMPOSANT VIDÉO BACKGROUND
 // ========================================
 function VideoBackground() {
-  const videoRef = useRef<HTMLVideoElement>(null);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
-  const [availableVideos, setAvailableVideos] = useState<string[]>([]);
-  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [videoErrorCount, setVideoErrorCount] = useState(0);
 
-  // Vérifier quelles vidéos existent
-  useEffect(() => {
-    const checkVideos = async () => {
-      const existing: string[] = [];
-      
-      // D'abord essayer la vidéo unique
-      try {
-        const response = await fetch(SINGLE_VIDEO, { method: 'HEAD' });
-        if (response.ok) {
-          existing.push(SINGLE_VIDEO);
-        }
-      } catch {}
+  // Liste combinée de toutes les vidéos possibles
+  const allVideos = [SINGLE_VIDEO, ...BACKGROUND_VIDEOS];
+  const currentVideo = allVideos[currentVideoIndex];
 
-      // Ensuite vérifier les vidéos multiples
-      for (const video of BACKGROUND_VIDEOS) {
-        try {
-          const response = await fetch(video, { method: 'HEAD' });
-          if (response.ok && !existing.includes(video)) {
-            existing.push(video);
-          }
-        } catch {}
-      }
-
-      setAvailableVideos(existing);
-    };
-
-    checkVideos();
-  }, []);
-
-  // Passer à la vidéo suivante quand une se termine
-  const handleVideoEnd = () => {
-    if (availableVideos.length > 1) {
-      setCurrentVideoIndex((prev) => (prev + 1) % availableVideos.length);
-    }
-    // Si une seule vidéo, elle recommence automatiquement grâce à "loop"
+  // Passer à la vidéo suivante
+  const nextVideo = () => {
+    setCurrentVideoIndex((prev) => (prev + 1) % allVideos.length);
   };
 
-  // Si pas de vidéo, ne rien afficher
-  if (availableVideos.length === 0) {
-    return null;
-  }
+  const handleVideoError = () => {
+    console.log(`Erreur de chargement pour ${currentVideo}, essai du suivant...`);
+    // Si on a essayé toutes les vidéos sans succès, on arrête pour éviter une boucle infinie rapide
+    if (videoErrorCount < allVideos.length * 2) {
+      setVideoErrorCount(prev => prev + 1);
+      nextVideo();
+    }
+  };
 
-  const currentVideo = availableVideos[currentVideoIndex];
-  const useLoop = availableVideos.length === 1;
+  const handleVideoSuccess = () => {
+    // La vidéo fonctionne, on reset le compteur d'erreurs
+    setVideoErrorCount(0);
+  };
 
   return (
-    <div className="video-background-container">
+    <div className="fixed inset-0 w-full h-full overflow-hidden -z-10 bg-slate-900">
       <video
-        ref={videoRef}
         key={currentVideo}
         autoPlay
         muted
         playsInline
-        loop={useLoop}
-        onEnded={handleVideoEnd}
-        onLoadedData={() => setVideoLoaded(true)}
-        className={`video-background ${videoLoaded ? 'opacity-100' : 'opacity-0'}`}
+        // Si c'est la seule vidéo qui marche, on boucle
+        loop={false} 
+        onEnded={nextVideo}
+        onError={handleVideoError}
+        onCanPlay={handleVideoSuccess}
+        className="absolute top-1/2 left-1/2 min-w-full min-h-full w-auto h-auto -translate-x-1/2 -translate-y-1/2 object-cover opacity-60"
       >
         <source src={currentVideo} type="video/mp4" />
-        <source src={currentVideo.replace('.mp4', '.webm')} type="video/webm" />
+        {/* Fallback simple */}
       </video>
       
       {/* Overlay sombre pour lisibilité */}
-      <div className="video-overlay" />
+      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[1px]" />
       
-      {/* Effet de vignette */}
-      <div className="video-vignette" />
+      {/* Gradient subtil */}
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-slate-900/50" />
     </div>
   );
 }
