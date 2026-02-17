@@ -5,13 +5,15 @@ services:
   - type: web
     name: eduanalytics-saas
     env: node
-    region: frankfurt  # ou 'oregon', 'ohio', 'singapore'
+    region: frankfurt
     plan: free
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: node server.js
     healthCheckPath: /
     envVars:
       - key: NODE_ENV
         value: production
       - key: NODE_VERSION
-        value: 18.17.0
+        value: 20.11.0
+      - key: NPM_CONFIG_PRODUCTION
+        value: false
