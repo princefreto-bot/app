@@ -6,8 +6,104 @@ import { StudentsPage } from './pages/StudentsPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { useEffect, useState, useRef } from 'react';
 
+// ========================================
+// CONFIGURATION DES VIDÉOS BACKGROUND
+// ========================================
+// Ajoutez vos vidéos dans le dossier public/
+// et listez-les ici dans l'ordre de lecture
+const BACKGROUND_VIDEOS = [
+  '/video1.mp4',
+  '/video2.mp4',
+  '/video3.mp4',
+  // Ajoutez autant de vidéos que vous voulez
+  // Si un fichier n'existe pas, il sera ignoré
+];
+
+// Vidéo unique par défaut si vous n'avez qu'une seule vidéo
+const SINGLE_VIDEO = '/background.mp4';
+
+// ========================================
+// COMPOSANT VIDÉO BACKGROUND
+// ========================================
+function VideoBackground() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+  const [availableVideos, setAvailableVideos] = useState<string[]>([]);
+  const [videoLoaded, setVideoLoaded] = useState(false);
+
+  // Vérifier quelles vidéos existent
+  useEffect(() => {
+    const checkVideos = async () => {
+      const existing: string[] = [];
+      
+      // D'abord essayer la vidéo unique
+      try {
+        const response = await fetch(SINGLE_VIDEO, { method: 'HEAD' });
+        if (response.ok) {
+          existing.push(SINGLE_VIDEO);
+        }
+      } catch {}
+
+      // Ensuite vérifier les vidéos multiples
+      for (const video of BACKGROUND_VIDEOS) {
+        try {
+          const response = await fetch(video, { method: 'HEAD' });
+          if (response.ok && !existing.includes(video)) {
+            existing.push(video);
+          }
+        } catch {}
+      }
+
+      setAvailableVideos(existing);
+    };
+
+    checkVideos();
+  }, []);
+
+  // Passer à la vidéo suivante quand une se termine
+  const handleVideoEnd = () => {
+    if (availableVideos.length > 1) {
+      setCurrentVideoIndex((prev) => (prev + 1) % availableVideos.length);
+    }
+    // Si une seule vidéo, elle recommence automatiquement grâce à "loop"
+  };
+
+  // Si pas de vidéo, ne rien afficher
+  if (availableVideos.length === 0) {
+    return null;
+  }
+
+  const currentVideo = availableVideos[currentVideoIndex];
+  const useLoop = availableVideos.length === 1;
+
+  return (
+    <div className="video-background-container">
+      <video
+        ref={videoRef}
+        key={currentVideo}
+        autoPlay
+        muted
+        playsInline
+        loop={useLoop}
+        onEnded={handleVideoEnd}
+        onLoadedData={() => setVideoLoaded(true)}
+        className={`video-background ${videoLoaded ? 'opacity-100' : 'opacity-0'}`}
+      >
+        <source src={currentVideo} type="video/mp4" />
+        <source src={currentVideo.replace('.mp4', '.webm')} type="video/webm" />
+      </video>
+      
+      {/* Overlay sombre pour lisibilité */}
+      <div className="video-overlay" />
+      
+      {/* Effet de vignette */}
+      <div className="video-vignette" />
+    </div>
+  );
+}
+
 function Particles() {
-  const particles = Array.from({ length: 20 }, (_, i) => ({
+  const particles = Array.from({ length: 30 }, (_, i) => ({
     id: i,
     left: Math.random() * 100,
     delay: Math.random() * 15,
@@ -247,8 +343,17 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen gradient-bg">
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Vidéo en arrière-plan - tourne en boucle */}
+      <VideoBackground />
+      
+      {/* Fallback gradient si pas de vidéo */}
+      <div className="fixed inset-0 gradient-bg -z-20" />
+      
+      {/* Particules animées par-dessus la vidéo */}
       <Particles />
+      
+      {/* Contenu de l'application */}
       <Sidebar />
       <main className="main-content ml-64 min-h-screen relative z-10">
         {renderPage()}
