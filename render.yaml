@@ -9,11 +9,11 @@ services:
     plan: free
     buildCommand: npm ci --include=dev && npx --yes vite build
     startCommand: node server.js
-    healthCheckPath: /
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
       - key: NODE_VERSION
-        value: 20.11.0
+        value: "22.12.0"
       - key: NPM_CONFIG_PRODUCTION
-        value: false
+        value: "false"
